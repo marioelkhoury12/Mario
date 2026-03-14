@@ -1,0 +1,66 @@
+[
+  {
+    "id": "nofrills",
+    "name": "No Frills",
+    "logo": "🟡",
+    "color": "#FFD700",
+    "locations": ["Multiple locations across Toronto"],
+    "flyerUrl": "https://www.nofrills.ca/flyer"
+  },
+  {
+    "id": "loblaws",
+    "name": "Loblaws",
+    "logo": "🔴",
+    "color": "#E31837",
+    "locations": ["Multiple locations across Toronto"],
+    "flyerUrl": "https://www.loblaws.ca/flyer"
+  },
+  {
+    "id": "metro",
+    "name": "Metro",
+    "logo": "🔵",
+    "color": "#003DA5",
+    "locations": ["Multiple locations across Toronto"],
+    "flyerUrl": "https://www.metro.ca/en/flyer"
+  },
+  {
+    "id": "foodbasics",
+    "name": "Food Basics",
+    "logo": "🟢",
+    "color": "#00843D",
+    "locations": ["Multiple locations across Toronto"],
+    "flyerUrl": "https://www.foodbasics.ca/flyer"
+  },
+  {
+    "id": "freshco",
+    "name": "FreshCo",
+    "logo": "🟠",
+    "color": "#FF6600",
+    "locations": ["Multiple locations across Toronto"],
+    "flyerUrl": "https://www.freshco.com/flyer"
+  },
+  {
+    "id": "walmart",
+    "name": "Walmart",
+    "logo": "⭐",
+    "color": "#0071DC",
+    "locations": ["Multiple locations across Toronto"],
+    "flyerUrl": "https://www.walmart.ca/flyer"
+  },
+  {
+    "id": "tnt",
+    "name": "T&T Supermarket",
+    "logo": "🏮",
+    "color": "#CC0000",
+    "locations": ["Multiple locations across Toronto"],
+    "flyerUrl": "https://www.tntsupermarket.com/flyers.html"
+  },
+  {
+    "id": "sobeys",
+    "name": "Sobeys",
+    "logo": "🟣",
+    "color": "#6B2D8B",
+    "locations": ["Multiple locations across Toronto"],
+    "flyerUrl": "https://www.sobeys.com/flyer/"
+  }
+]

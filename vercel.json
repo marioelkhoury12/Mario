@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/api/stores", "destination": "/api/stores" },
+    { "source": "/api/categories", "destination": "/api/categories" },
+    { "source": "/api/products", "destination": "/api/products" },
+    { "source": "/api/flyer-items", "destination": "/api/flyer-items" },
+    { "source": "/api/compare", "destination": "/api/compare" },
+    { "source": "/api/coupons", "destination": "/api/coupons" }
+  ]
+}
