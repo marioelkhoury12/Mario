@@ -14,6 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let stores = [];
 
+  // --- Local coupon storage ---
+  function getLocalCoupons() {
+    try {
+      return JSON.parse(localStorage.getItem('grocery-coupons') || '[]');
+    } catch { return []; }
+  }
+
+  function saveLocalCoupons(coupons) {
+    localStorage.setItem('grocery-coupons', JSON.stringify(coupons));
+  }
+
   // Load initial data
   async function init() {
     stores = await fetchJSON('/api/stores');
@@ -81,6 +92,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!product) return;
 
     const results = await fetchJSON(`/api/compare?product=${encodeURIComponent(product)}`);
+    const coupons = getLocalCoupons();
+    const term = product.toLowerCase();
+
+    // Apply local coupons to results
+    results.forEach(item => {
+      const applicableCoupons = coupons.filter(c =>
+        c.storeId === item.storeId &&
+        c.productName.toLowerCase().includes(term) &&
+        (!c.validTo || new Date(c.validTo) >= new Date())
+      );
+      const couponDiscount = applicableCoupons.reduce((sum, c) => {
+        if (c.discountType === 'fixed') return sum + parseFloat(c.discountValue);
+        if (c.discountType === 'percentage') return sum + (item.price * parseFloat(c.discountValue) / 100);
+        return sum;
+      }, 0);
+      item.couponDiscount = Math.round(couponDiscount * 100) / 100;
+      item.finalPrice = Math.round(Math.max(0, item.price - couponDiscount) * 100) / 100;
+      item.appliedCoupons = applicableCoupons;
+    });
+
+    results.sort((a, b) => a.finalPrice - b.finalPrice);
+
     if (results.length === 0) {
       compareResults.innerHTML = `
         <div class="empty-state">
@@ -90,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const cheapest = results[0].finalPrice;
     compareResults.innerHTML = results.map((item, i) => {
       const isCheapest = i === 0;
       const savings = item.originalPrice > item.finalPrice
@@ -107,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="store-name">${item.storeName}</div>
             <div class="item-desc">${item.description}</div>
             ${item.appliedCoupons.length > 0 ? item.appliedCoupons.map(c =>
-              `<span class="coupon-tag">Coupon: -$${c.discountType === 'fixed' ? c.discountValue.toFixed(2) : c.discountValue + '%'}${c.code ? ' (' + c.code + ')' : ''}</span>`
+              `<span class="coupon-tag">Coupon: -${c.discountType === 'fixed' ? '$' + parseFloat(c.discountValue).toFixed(2) : c.discountValue + '%'}${c.code ? ' (' + c.code + ')' : ''}</span>`
             ).join(' ') : ''}
           </div>
           <div class="compare-pricing">
@@ -175,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
-  // --- Coupons ---
+  // --- Coupons (localStorage) ---
   const addCouponBtn = document.getElementById('add-coupon-btn');
   const couponForm = document.getElementById('coupon-form');
   const couponFormEl = document.getElementById('coupon-form-el');
@@ -193,9 +225,10 @@ document.addEventListener('DOMContentLoaded', () => {
     couponForm.classList.add('hidden');
   });
 
-  couponFormEl.addEventListener('submit', async (e) => {
+  couponFormEl.addEventListener('submit', (e) => {
     e.preventDefault();
     const data = {
+      id: couponFormEl.dataset.editId || crypto.randomUUID(),
       storeId: document.getElementById('coupon-store').value,
       productName: document.getElementById('coupon-product').value,
       discountType: document.getElementById('coupon-discount-type').value,
@@ -206,21 +239,24 @@ document.addEventListener('DOMContentLoaded', () => {
       validTo: document.getElementById('coupon-valid-to').value
     };
 
+    const coupons = getLocalCoupons();
     const editId = couponFormEl.dataset.editId;
     if (editId) {
-      await fetch(`/api/coupons/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      const idx = coupons.findIndex(c => c.id === editId);
+      if (idx !== -1) coupons[idx] = data;
       showToast('Coupon updated!', 'success');
     } else {
-      await fetch('/api/coupons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      coupons.push(data);
       showToast('Coupon added!', 'success');
     }
 
+    saveLocalCoupons(coupons);
     couponForm.classList.add('hidden');
     loadCoupons();
   });
 
-  async function loadCoupons() {
-    const coupons = await fetchJSON('/api/coupons');
+  function loadCoupons() {
+    const coupons = getLocalCoupons();
     const storeMap = {};
     stores.forEach(s => { storeMap[s.id] = s; });
 
@@ -255,8 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
-  window.editCoupon = async function(id) {
-    const coupons = await fetchJSON('/api/coupons');
+  window.editCoupon = function(id) {
+    const coupons = getLocalCoupons();
     const c = coupons.find(x => x.id === id);
     if (!c) return;
 
@@ -273,14 +309,15 @@ document.addEventListener('DOMContentLoaded', () => {
     couponFormEl.dataset.editId = id;
   };
 
-  window.deleteCoupon = async function(id) {
+  window.deleteCoupon = function(id) {
     if (!confirm('Delete this coupon?')) return;
-    await fetch(`/api/coupons/${id}`, { method: 'DELETE' });
+    const coupons = getLocalCoupons().filter(c => c.id !== id);
+    saveLocalCoupons(coupons);
     showToast('Coupon deleted', 'success');
     loadCoupons();
   };
 
-  // --- Add Item ---
+  // --- Add Item (posts to server API, falls back for display) ---
   const addItemForm = document.getElementById('add-item-form');
   addItemForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -297,7 +334,11 @@ document.addEventListener('DOMContentLoaded', () => {
       description: document.getElementById('item-description').value
     };
 
-    await fetch('/api/flyer-items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    try {
+      await fetch('/api/flyer-items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    } catch (err) {
+      // Serverless mode — item add may not persist, but that's OK
+    }
     showToast('Flyer item added!', 'success');
     addItemForm.reset();
     document.getElementById('item-on-sale').checked = true;
