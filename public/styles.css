@@ -483,40 +483,57 @@ main {
   margin-top: 0.2rem;
 }
 
-/* Grocery List Tab */
-.grocery-list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Shopping List Tab */
+.shopping-list-header {
   margin-bottom: 1rem;
 }
 
-.grocery-list-header h2 {
+.shopping-list-header h2 {
   font-size: 1.4rem;
+  margin-bottom: 0.25rem;
 }
 
-.grocery-add-bar {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  max-width: 600px;
+.shopping-input-area {
+  margin-bottom: 1.5rem;
 }
 
-.grocery-add-bar input {
-  flex: 1;
-  padding: 0.75rem 1rem;
+.shopping-input-area textarea {
+  width: 100%;
+  max-width: 700px;
+  padding: 1rem;
   border: 2px solid var(--border);
   border-radius: var(--radius);
   font-size: 1rem;
+  font-family: inherit;
+  line-height: 1.8;
   outline: none;
+  resize: vertical;
   transition: border-color 0.2s;
+  background: var(--card);
 }
 
-.grocery-add-bar input:focus {
+.shopping-input-area textarea:focus {
   border-color: var(--primary);
 }
 
-.grocery-summary {
+.shopping-input-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.btn-scan {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+}
+
+.item-count {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.shopping-summary {
   display: flex;
   gap: 1rem;
   margin-bottom: 1.5rem;
@@ -530,7 +547,7 @@ main {
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  min-width: 160px;
+  min-width: 140px;
 }
 
 .summary-card.savings {
@@ -553,130 +570,153 @@ main {
   color: var(--success);
 }
 
-.grocery-items {
+.shopping-scan-results {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.grocery-item-card {
+.scan-item-card {
   background: var(--card);
   border-radius: var(--radius);
-  padding: 1rem 1.25rem;
+  padding: 1.25rem;
   box-shadow: var(--shadow);
 }
 
-.grocery-item-card.no-match {
+.scan-item-card.not-found {
   border-left: 4px solid var(--border);
+  opacity: 0.7;
 }
 
-.grocery-item-header {
+.scan-item-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.grocery-item-name {
-  font-size: 1.1rem;
+.scan-item-name {
+  font-size: 1.15rem;
   font-weight: 700;
 }
 
-.grocery-no-results {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  font-style: italic;
-}
-
-.grocery-best-price {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(90deg, #f0fdf4 0%, var(--card) 30%);
-  border-left: 4px solid var(--success);
+.scan-sale-tag {
+  background: var(--danger);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
   border-radius: 4px;
-  padding: 0.75rem 1rem;
-  gap: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.grocery-best-store {
+.scan-coupon-tag {
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.scan-no-coupon-tag {
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.scan-not-found {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.scan-best-deal {
+  background: linear-gradient(90deg, #f0fdf4 0%, var(--card) 40%);
+  border-left: 4px solid var(--success);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  position: relative;
+}
+
+.scan-best-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--success);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.4rem;
+}
+
+.scan-best-content {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.grocery-best-store .store-badge {
-  font-size: 1.8rem;
+.scan-store-logo {
+  font-size: 2rem;
+  min-width: 40px;
+  text-align: center;
 }
 
-.grocery-store-name {
+.scan-best-details {
+  flex: 1;
+}
+
+.scan-store-name {
   font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--text);
+  font-size: 0.95rem;
 }
 
-.grocery-product-name {
-  font-size: 0.85rem;
+.scan-product-match {
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
-.grocery-product-desc {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.grocery-price-info {
+.scan-price-block {
   text-align: right;
-  min-width: 100px;
+  min-width: 110px;
 }
 
-.grocery-final-price {
-  font-size: 1.4rem;
+.scan-final-price {
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--success);
 }
 
-.grocery-unit {
+.scan-unit {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.grocery-sale-badge {
-  background: var(--danger);
-  color: white;
-  font-size: 0.6rem;
-  font-weight: 700;
-  padding: 0.1rem 0.4rem;
-  border-radius: 3px;
-  text-transform: uppercase;
+.scan-original-price {
+  text-decoration: line-through;
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
-.grocery-coupon-indicator {
-  margin-top: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.coupon-available-badge {
-  background: #fef3c7;
+.scan-coupon-savings {
   color: #92400e;
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
   font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.scan-you-save {
+  color: var(--success);
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
-.no-coupon-badge {
-  background: var(--bg);
-  color: var(--text-muted);
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
-.grocery-other-stores {
+.scan-coupons-row {
   margin-top: 0.5rem;
   display: flex;
   align-items: center;
@@ -684,16 +724,30 @@ main {
   flex-wrap: wrap;
 }
 
-.other-stores-label {
+.scan-coupons-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.scan-other-stores {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.scan-other-label {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.other-store-chip {
+.scan-other-chip {
   background: var(--bg);
   border: 1px solid var(--border);
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
+  padding: 0.25rem 0.7rem;
+  border-radius: 14px;
   font-size: 0.75rem;
   color: var(--text);
 }
@@ -871,8 +925,8 @@ footer {
   .flyer-grid { grid-template-columns: 1fr; }
   .coupon-list { grid-template-columns: 1fr; }
   .compare-card { flex-wrap: wrap; }
-  .grocery-add-bar { max-width: 100%; }
-  .grocery-summary { flex-direction: column; }
-  .grocery-best-price { flex-direction: column; align-items: flex-start; }
-  .grocery-price-info { text-align: left; }
+  .shopping-input-area textarea { max-width: 100%; }
+  .shopping-summary { flex-direction: column; }
+  .scan-best-content { flex-direction: column; align-items: flex-start; }
+  .scan-price-block { text-align: left; }
 }

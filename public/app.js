@@ -317,73 +317,61 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCoupons();
   };
 
-  // --- Grocery List (localStorage) ---
-  function getGroceryList() {
-    try {
-      return JSON.parse(localStorage.getItem('grocery-list') || '[]');
-    } catch { return []; }
-  }
+  // --- Shopping List ---
+  const shoppingTextarea = document.getElementById('shopping-textarea');
+  const scanFlyersBtn = document.getElementById('scan-flyers-btn');
+  const clearShoppingBtn = document.getElementById('clear-shopping-list');
+  const shoppingResults = document.getElementById('shopping-results');
+  const shoppingScanResults = document.getElementById('shopping-scan-results');
+  const shoppingItemCount = document.getElementById('shopping-item-count');
 
-  function saveGroceryList(list) {
-    localStorage.setItem('grocery-list', JSON.stringify(list));
-  }
+  // Load saved list from localStorage
+  const savedList = localStorage.getItem('shopping-list-text');
+  if (savedList) shoppingTextarea.value = savedList;
 
-  const groceryInput = document.getElementById('grocery-item-input');
-  const addGroceryBtn = document.getElementById('add-grocery-item');
-  const clearGroceryBtn = document.getElementById('clear-grocery-list');
-  const groceryListItems = document.getElementById('grocery-list-items');
-  const grocerySummary = document.getElementById('grocery-list-summary');
-
-  addGroceryBtn.addEventListener('click', addGroceryItem);
-  groceryInput.addEventListener('keydown', e => { if (e.key === 'Enter') addGroceryItem(); });
-
-  clearGroceryBtn.addEventListener('click', () => {
-    if (!confirm('Clear your entire grocery list?')) return;
-    saveGroceryList([]);
-    loadGroceryList();
-    showToast('Grocery list cleared', 'success');
+  // Update item count as user types
+  shoppingTextarea.addEventListener('input', () => {
+    const items = getShoppingItems();
+    shoppingItemCount.textContent = `${items.length} item${items.length !== 1 ? 's' : ''}`;
+    localStorage.setItem('shopping-list-text', shoppingTextarea.value);
   });
 
-  function addGroceryItem() {
-    const name = groceryInput.value.trim();
-    if (!name) return;
+  // Trigger initial count
+  shoppingTextarea.dispatchEvent(new Event('input'));
 
-    const list = getGroceryList();
-    if (list.some(item => item.name.toLowerCase() === name.toLowerCase())) {
-      showToast('Item already in your list', 'error');
-      return;
-    }
+  clearShoppingBtn.addEventListener('click', () => {
+    shoppingTextarea.value = '';
+    shoppingResults.classList.add('hidden');
+    shoppingItemCount.textContent = '0 items';
+    localStorage.removeItem('shopping-list-text');
+    showToast('Shopping list cleared', 'success');
+  });
 
-    list.push({ id: crypto.randomUUID(), name });
-    saveGroceryList(list);
-    groceryInput.value = '';
-    loadGroceryList();
-    showToast('Added to grocery list!', 'success');
+  function getShoppingItems() {
+    return shoppingTextarea.value
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
   }
 
-  window.removeGroceryItem = function(id) {
-    const list = getGroceryList().filter(item => item.id !== id);
-    saveGroceryList(list);
-    loadGroceryList();
-  };
+  scanFlyersBtn.addEventListener('click', scanFlyers);
 
-  async function loadGroceryList() {
-    const list = getGroceryList();
-
-    if (list.length === 0) {
-      grocerySummary.classList.add('hidden');
-      groceryListItems.innerHTML = `
-        <div class="empty-state">
-          <div class="emoji">📝</div>
-          <p>Your grocery list is empty. Add items above to find the best prices!</p>
-        </div>`;
+  async function scanFlyers() {
+    const items = getShoppingItems();
+    if (items.length === 0) {
+      showToast('Add some items to your list first!', 'error');
       return;
     }
 
-    groceryListItems.innerHTML = `
+    // Save the list
+    localStorage.setItem('shopping-list-text', shoppingTextarea.value);
+
+    // Show loading
+    shoppingResults.classList.remove('hidden');
+    shoppingScanResults.innerHTML = `
       <div class="empty-state">
-        <div class="emoji">⏳</div>
-        <p>Finding best prices for ${list.length} item(s)...</p>
+        <div class="emoji">🔍</div>
+        <p>Scanning flyers for ${items.length} item(s)...</p>
       </div>`;
 
     const coupons = getLocalCoupons();
@@ -392,14 +380,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let totalBestPrice = 0;
     let totalOriginalPrice = 0;
+    let foundCount = 0;
+    let notFoundCount = 0;
     const itemResults = [];
 
-    for (const item of list) {
-      const results = await fetchJSON(`/api/compare?product=${encodeURIComponent(item.name)}`);
+    for (const itemName of items) {
+      const results = await fetchJSON(`/api/compare?product=${encodeURIComponent(itemName)}`);
 
-      // Apply local coupons
+      // Apply local coupons to each result
       results.forEach(r => {
-        const term = item.name.toLowerCase();
+        const term = itemName.toLowerCase();
         const applicableCoupons = coupons.filter(c =>
           c.storeId === r.storeId &&
           c.productName.toLowerCase().includes(term) &&
@@ -419,85 +409,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const best = results[0] || null;
       if (best) {
+        foundCount++;
         totalBestPrice += best.finalPrice;
         totalOriginalPrice += best.originalPrice || best.price;
+      } else {
+        notFoundCount++;
       }
 
-      itemResults.push({ item, results, best });
+      itemResults.push({ itemName, results, best });
     }
 
     // Update summary
-    grocerySummary.classList.remove('hidden');
-    document.getElementById('summary-total-items').textContent = list.length;
-    document.getElementById('summary-total-price').textContent = `$${totalBestPrice.toFixed(2)}`;
+    document.getElementById('shop-summary-found').textContent = foundCount;
+    document.getElementById('shop-summary-notfound').textContent = notFoundCount;
+    document.getElementById('shop-summary-total').textContent = `$${totalBestPrice.toFixed(2)}`;
     const savings = totalOriginalPrice - totalBestPrice;
-    document.getElementById('summary-total-savings').textContent = `$${Math.max(0, savings).toFixed(2)}`;
+    document.getElementById('shop-summary-savings').textContent = `$${Math.max(0, savings).toFixed(2)}`;
 
-    // Render items
-    groceryListItems.innerHTML = itemResults.map(({ item, results, best }) => {
-      const hasCoupons = results.some(r => r.appliedCoupons && r.appliedCoupons.length > 0);
-      const bestCoupons = best && best.appliedCoupons ? best.appliedCoupons : [];
-
+    // Render results
+    shoppingScanResults.innerHTML = itemResults.map(({ itemName, results, best }) => {
       if (!best) {
         return `
-          <div class="grocery-item-card no-match">
-            <div class="grocery-item-header">
-              <span class="grocery-item-name">${item.name}</span>
-              <button class="btn-danger btn-small" onclick="removeGroceryItem('${item.id}')">Remove</button>
-            </div>
-            <div class="grocery-no-results">No flyer matches found</div>
+          <div class="scan-item-card not-found">
+            <div class="scan-item-name">${itemName}</div>
+            <div class="scan-not-found">No matches found in current flyers</div>
           </div>`;
       }
 
-      const store = storeMap[best.storeId] || {};
-      const otherStores = results.slice(1, 4);
+      const bestStore = storeMap[best.storeId] || {};
+      const hasCoupon = best.appliedCoupons && best.appliedCoupons.length > 0;
+      const allCoupons = results.flatMap(r => (r.appliedCoupons || []).map(c => ({ ...c, storeName: (storeMap[c.storeId] || {}).name || c.storeId })));
+      const otherOptions = results.slice(1, 4);
 
       return `
-        <div class="grocery-item-card">
-          <div class="grocery-item-header">
-            <span class="grocery-item-name">${item.name}</span>
-            <button class="btn-danger btn-small" onclick="removeGroceryItem('${item.id}')">Remove</button>
+        <div class="scan-item-card">
+          <div class="scan-item-top">
+            <div class="scan-item-name">${itemName}</div>
+            ${best.onSale ? '<span class="scan-sale-tag">ON SALE</span>' : ''}
+            ${hasCoupon ? '<span class="scan-coupon-tag">COUPON</span>' : '<span class="scan-no-coupon-tag">NO COUPON</span>'}
           </div>
-          <div class="grocery-best-price" style="border-left-color: ${store.color || 'var(--success)'}">
-            <div class="grocery-best-store">
-              <span class="store-badge">${store.logo || ''}</span>
-              <div>
-                <div class="grocery-store-name">${store.name || best.storeId}</div>
-                <div class="grocery-product-name">${best.name}</div>
-                <div class="grocery-product-desc">${best.description || ''}</div>
+
+          <div class="scan-best-deal" style="border-left-color: ${bestStore.color || '#16a34a'}">
+            <div class="scan-best-label">CHEAPEST</div>
+            <div class="scan-best-content">
+              <span class="scan-store-logo">${bestStore.logo || ''}</span>
+              <div class="scan-best-details">
+                <div class="scan-store-name">${bestStore.name || best.storeId}</div>
+                <div class="scan-product-match">${best.name} &mdash; ${best.description || ''}</div>
+              </div>
+              <div class="scan-price-block">
+                <div class="scan-final-price">$${best.finalPrice.toFixed(2)}</div>
+                <div class="scan-unit">${best.unit}</div>
+                ${best.originalPrice > best.finalPrice ? `<div class="scan-original-price">was $${best.originalPrice.toFixed(2)}</div>` : ''}
+                ${best.couponDiscount > 0 ? `<div class="scan-coupon-savings">-$${best.couponDiscount.toFixed(2)} coupon</div>` : ''}
+                ${best.originalPrice > best.finalPrice ? `<div class="scan-you-save">You save $${(best.originalPrice - best.finalPrice).toFixed(2)}</div>` : ''}
               </div>
             </div>
-            <div class="grocery-price-info">
-              <div class="grocery-final-price">$${best.finalPrice.toFixed(2)}</div>
-              <div class="grocery-unit">${best.unit}</div>
-              ${best.originalPrice > best.finalPrice ? `<div class="original-price">$${best.originalPrice.toFixed(2)}</div>` : ''}
-              ${best.onSale ? '<span class="grocery-sale-badge">Sale</span>' : ''}
-            </div>
           </div>
-          ${hasCoupons ? `
-            <div class="grocery-coupon-indicator">
-              <span class="coupon-available-badge">Coupon Available</span>
-              ${bestCoupons.map(c =>
-                `<span class="coupon-tag">${c.discountType === 'fixed' ? '-$' + parseFloat(c.discountValue).toFixed(2) : '-' + c.discountValue + '%'}${c.code ? ' (' + c.code + ')' : ''} at ${(storeMap[c.storeId] || {}).name || c.storeId}</span>`
+
+          ${allCoupons.length > 0 ? `
+            <div class="scan-coupons-row">
+              <span class="scan-coupons-label">Available coupons:</span>
+              ${allCoupons.map(c =>
+                `<span class="coupon-tag">${c.discountType === 'fixed' ? '-$' + parseFloat(c.discountValue).toFixed(2) : '-' + c.discountValue + '%'}${c.code ? ' (' + c.code + ')' : ''} at ${c.storeName}</span>`
               ).join(' ')}
-            </div>` : `
-            <div class="grocery-coupon-indicator">
-              <span class="no-coupon-badge">No Coupons</span>
-            </div>`}
-          ${otherStores.length > 0 ? `
-            <div class="grocery-other-stores">
-              <span class="other-stores-label">Also at:</span>
-              ${otherStores.map(r => {
+            </div>` : ''}
+
+          ${otherOptions.length > 0 ? `
+            <div class="scan-other-stores">
+              <span class="scan-other-label">Other stores:</span>
+              ${otherOptions.map(r => {
                 const s = storeMap[r.storeId] || {};
-                return `<span class="other-store-chip">${s.logo || ''} ${s.name || r.storeId} $${r.finalPrice.toFixed(2)}</span>`;
+                return `<span class="scan-other-chip">${s.logo || ''} ${s.name || r.storeId} <strong>$${r.finalPrice.toFixed(2)}</strong>/${r.unit}</span>`;
               }).join('')}
             </div>` : ''}
         </div>`;
     }).join('');
   }
-
-  // Load grocery list when switching to that tab
-  document.querySelector('[data-tab="grocery-list"]').addEventListener('click', loadGroceryList);
 
   // --- Add Item (posts to server API, falls back for display) ---
   const addItemForm = document.getElementById('add-item-form');
