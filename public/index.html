@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toronto Grocery Price Compare</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <h1>🛒 Toronto Grocery Price Compare</h1>
+      <p class="subtitle">Compare flyer prices across Toronto's top grocery stores</p>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-tab="compare">Price Compare</button>
+      <button class="nav-btn" data-tab="flyers">Browse Flyers</button>
+      <button class="nav-btn" data-tab="coupons">My Coupons</button>
+      <button class="nav-btn" data-tab="add-item">Add Item</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Price Compare Tab -->
+    <section id="compare" class="tab-content active">
+      <div class="compare-search">
+        <h2>Find the Best Price</h2>
+        <div class="search-bar">
+          <input type="text" id="compare-search" placeholder="Search for a product (e.g. Chicken Breast, Milk, Eggs...)" list="product-suggestions">
+          <datalist id="product-suggestions"></datalist>
+          <button id="compare-btn" class="btn-primary">Compare Prices</button>
+        </div>
+        <div class="quick-search">
+          <span>Popular:</span>
+          <button class="chip" data-product="Chicken Breast">Chicken Breast</button>
+          <button class="chip" data-product="2% Milk">2% Milk</button>
+          <button class="chip" data-product="Ground Beef">Ground Beef</button>
+          <button class="chip" data-product="Large Eggs">Large Eggs</button>
+          <button class="chip" data-product="Rice">Rice</button>
+          <button class="chip" data-product="Pasta Sauce">Pasta Sauce</button>
+        </div>
+      </div>
+      <div id="compare-results" class="compare-results"></div>
+    </section>
+
+    <!-- Browse Flyers Tab -->
+    <section id="flyers" class="tab-content">
+      <div class="flyer-controls">
+        <h2>Browse Store Flyers</h2>
+        <div class="filters">
+          <select id="store-filter">
+            <option value="">All Stores</option>
+          </select>
+          <select id="category-filter">
+            <option value="">All Categories</option>
+          </select>
+          <label class="toggle-label">
+            <input type="checkbox" id="sale-filter"> On Sale Only
+          </label>
+          <input type="text" id="flyer-search" placeholder="Search items...">
+        </div>
+      </div>
+      <div id="flyer-grid" class="flyer-grid"></div>
+    </section>
+
+    <!-- Coupons Tab -->
+    <section id="coupons" class="tab-content">
+      <div class="coupon-header">
+        <h2>My Coupons</h2>
+        <button id="add-coupon-btn" class="btn-primary">+ Add Coupon</button>
+      </div>
+
+      <!-- Add Coupon Form -->
+      <div id="coupon-form" class="form-card hidden">
+        <h3 id="coupon-form-title">Add New Coupon</h3>
+        <form id="coupon-form-el">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Store</label>
+              <select id="coupon-store" required></select>
+            </div>
+            <div class="form-group">
+              <label>Product Name</label>
+              <input type="text" id="coupon-product" placeholder="e.g. Chicken Breast" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Discount Type</label>
+              <select id="coupon-discount-type">
+                <option value="fixed">Fixed Amount ($)</option>
+                <option value="percentage">Percentage (%)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Discount Value</label>
+              <input type="number" id="coupon-discount-value" step="0.01" min="0" placeholder="e.g. 1.50 or 10" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Coupon Code (optional)</label>
+              <input type="text" id="coupon-code" placeholder="e.g. SAVE10">
+            </div>
+            <div class="form-group">
+              <label>Description (optional)</label>
+              <input type="text" id="coupon-desc" placeholder="e.g. App exclusive deal">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Valid From</label>
+              <input type="date" id="coupon-valid-from">
+            </div>
+            <div class="form-group">
+              <label>Valid To</label>
+              <input type="date" id="coupon-valid-to">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Coupon</button>
+            <button type="button" class="btn-secondary" id="cancel-coupon">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="coupon-list" class="coupon-list"></div>
+    </section>
+
+    <!-- Add Item Tab -->
+    <section id="add-item" class="tab-content">
+      <div class="form-card">
+        <h2>Add Flyer Item</h2>
+        <p class="form-desc">Manually add a deal you spotted in a store flyer.</p>
+        <form id="add-item-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Store</label>
+              <select id="item-store" required></select>
+            </div>
+            <div class="form-group">
+              <label>Product Name</label>
+              <input type="text" id="item-name" placeholder="e.g. Chicken Breast" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Category</label>
+              <select id="item-category">
+                <option value="Fruits & Vegetables">Fruits & Vegetables</option>
+                <option value="Meat & Poultry">Meat & Poultry</option>
+                <option value="Dairy">Dairy</option>
+                <option value="Bakery">Bakery</option>
+                <option value="Pantry">Pantry</option>
+                <option value="Frozen">Frozen</option>
+                <option value="Beverages">Beverages</option>
+                <option value="Snacks">Snacks</option>
+                <option value="Household">Household</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Unit</label>
+              <input type="text" id="item-unit" placeholder="e.g. per lb, 4L bag, each">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Sale Price ($)</label>
+              <input type="number" id="item-price" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+              <label>Original Price ($)</label>
+              <input type="number" id="item-original-price" step="0.01" min="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Valid From</label>
+              <input type="date" id="item-valid-from">
+            </div>
+            <div class="form-group">
+              <label>Valid To</label>
+              <input type="date" id="item-valid-to">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" id="item-description" placeholder="e.g. Family pack, boneless skinless">
+          </div>
+          <div class="form-group">
+            <label class="toggle-label">
+              <input type="checkbox" id="item-on-sale" checked> On Sale
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Add Item</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Toronto Grocery Price Compare &mdash; Prices are sourced from weekly flyers. Last updated: March 2026.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

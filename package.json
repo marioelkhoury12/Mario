@@ -1,0 +1,13 @@
+{
+  "name": "toronto-grocery-compare",
+  "version": "1.0.0",
+  "description": "Compare grocery flyer prices across Toronto stores with coupon management",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
+  }
+}
