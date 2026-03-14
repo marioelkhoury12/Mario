@@ -15,6 +15,7 @@
     <nav>
       <button class="nav-btn active" data-tab="compare">Price Compare</button>
       <button class="nav-btn" data-tab="flyers">Browse Flyers</button>
+      <button class="nav-btn" data-tab="grocery-list">My Grocery List</button>
       <button class="nav-btn" data-tab="coupons">My Coupons</button>
       <button class="nav-btn" data-tab="add-item">Add Item</button>
     </nav>
@@ -61,6 +62,35 @@
         </div>
       </div>
       <div id="flyer-grid" class="flyer-grid"></div>
+    </section>
+
+    <!-- Grocery List Tab -->
+    <section id="grocery-list" class="tab-content">
+      <div class="grocery-list-header">
+        <h2>My Grocery List</h2>
+        <div class="grocery-list-actions">
+          <button id="clear-grocery-list" class="btn-secondary btn-small">Clear All</button>
+        </div>
+      </div>
+      <div class="grocery-add-bar">
+        <input type="text" id="grocery-item-input" placeholder="Add an item (e.g. Chicken Breast, Milk, Eggs...)" list="product-suggestions">
+        <button id="add-grocery-item" class="btn-primary">+ Add</button>
+      </div>
+      <div id="grocery-list-summary" class="grocery-summary hidden">
+        <div class="summary-card">
+          <span class="summary-label">Items</span>
+          <span id="summary-total-items" class="summary-value">0</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Est. Total (Best Prices)</span>
+          <span id="summary-total-price" class="summary-value">$0.00</span>
+        </div>
+        <div class="summary-card savings">
+          <span class="summary-label">Est. Savings</span>
+          <span id="summary-total-savings" class="summary-value">$0.00</span>
+        </div>
+      </div>
+      <div id="grocery-list-items" class="grocery-items"></div>
     </section>
 
     <!-- Coupons Tab -->

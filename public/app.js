@@ -317,6 +317,188 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCoupons();
   };
 
+  // --- Grocery List (localStorage) ---
+  function getGroceryList() {
+    try {
+      return JSON.parse(localStorage.getItem('grocery-list') || '[]');
+    } catch { return []; }
+  }
+
+  function saveGroceryList(list) {
+    localStorage.setItem('grocery-list', JSON.stringify(list));
+  }
+
+  const groceryInput = document.getElementById('grocery-item-input');
+  const addGroceryBtn = document.getElementById('add-grocery-item');
+  const clearGroceryBtn = document.getElementById('clear-grocery-list');
+  const groceryListItems = document.getElementById('grocery-list-items');
+  const grocerySummary = document.getElementById('grocery-list-summary');
+
+  addGroceryBtn.addEventListener('click', addGroceryItem);
+  groceryInput.addEventListener('keydown', e => { if (e.key === 'Enter') addGroceryItem(); });
+
+  clearGroceryBtn.addEventListener('click', () => {
+    if (!confirm('Clear your entire grocery list?')) return;
+    saveGroceryList([]);
+    loadGroceryList();
+    showToast('Grocery list cleared', 'success');
+  });
+
+  function addGroceryItem() {
+    const name = groceryInput.value.trim();
+    if (!name) return;
+
+    const list = getGroceryList();
+    if (list.some(item => item.name.toLowerCase() === name.toLowerCase())) {
+      showToast('Item already in your list', 'error');
+      return;
+    }
+
+    list.push({ id: crypto.randomUUID(), name });
+    saveGroceryList(list);
+    groceryInput.value = '';
+    loadGroceryList();
+    showToast('Added to grocery list!', 'success');
+  }
+
+  window.removeGroceryItem = function(id) {
+    const list = getGroceryList().filter(item => item.id !== id);
+    saveGroceryList(list);
+    loadGroceryList();
+  };
+
+  async function loadGroceryList() {
+    const list = getGroceryList();
+
+    if (list.length === 0) {
+      grocerySummary.classList.add('hidden');
+      groceryListItems.innerHTML = `
+        <div class="empty-state">
+          <div class="emoji">📝</div>
+          <p>Your grocery list is empty. Add items above to find the best prices!</p>
+        </div>`;
+      return;
+    }
+
+    groceryListItems.innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">⏳</div>
+        <p>Finding best prices for ${list.length} item(s)...</p>
+      </div>`;
+
+    const coupons = getLocalCoupons();
+    const storeMap = {};
+    stores.forEach(s => { storeMap[s.id] = s; });
+
+    let totalBestPrice = 0;
+    let totalOriginalPrice = 0;
+    const itemResults = [];
+
+    for (const item of list) {
+      const results = await fetchJSON(`/api/compare?product=${encodeURIComponent(item.name)}`);
+
+      // Apply local coupons
+      results.forEach(r => {
+        const term = item.name.toLowerCase();
+        const applicableCoupons = coupons.filter(c =>
+          c.storeId === r.storeId &&
+          c.productName.toLowerCase().includes(term) &&
+          (!c.validTo || new Date(c.validTo) >= new Date())
+        );
+        const couponDiscount = applicableCoupons.reduce((sum, c) => {
+          if (c.discountType === 'fixed') return sum + parseFloat(c.discountValue);
+          if (c.discountType === 'percentage') return sum + (r.price * parseFloat(c.discountValue) / 100);
+          return sum;
+        }, 0);
+        r.couponDiscount = Math.round(couponDiscount * 100) / 100;
+        r.finalPrice = Math.round(Math.max(0, r.price - couponDiscount) * 100) / 100;
+        r.appliedCoupons = applicableCoupons;
+      });
+
+      results.sort((a, b) => a.finalPrice - b.finalPrice);
+
+      const best = results[0] || null;
+      if (best) {
+        totalBestPrice += best.finalPrice;
+        totalOriginalPrice += best.originalPrice || best.price;
+      }
+
+      itemResults.push({ item, results, best });
+    }
+
+    // Update summary
+    grocerySummary.classList.remove('hidden');
+    document.getElementById('summary-total-items').textContent = list.length;
+    document.getElementById('summary-total-price').textContent = `$${totalBestPrice.toFixed(2)}`;
+    const savings = totalOriginalPrice - totalBestPrice;
+    document.getElementById('summary-total-savings').textContent = `$${Math.max(0, savings).toFixed(2)}`;
+
+    // Render items
+    groceryListItems.innerHTML = itemResults.map(({ item, results, best }) => {
+      const hasCoupons = results.some(r => r.appliedCoupons && r.appliedCoupons.length > 0);
+      const bestCoupons = best && best.appliedCoupons ? best.appliedCoupons : [];
+
+      if (!best) {
+        return `
+          <div class="grocery-item-card no-match">
+            <div class="grocery-item-header">
+              <span class="grocery-item-name">${item.name}</span>
+              <button class="btn-danger btn-small" onclick="removeGroceryItem('${item.id}')">Remove</button>
+            </div>
+            <div class="grocery-no-results">No flyer matches found</div>
+          </div>`;
+      }
+
+      const store = storeMap[best.storeId] || {};
+      const otherStores = results.slice(1, 4);
+
+      return `
+        <div class="grocery-item-card">
+          <div class="grocery-item-header">
+            <span class="grocery-item-name">${item.name}</span>
+            <button class="btn-danger btn-small" onclick="removeGroceryItem('${item.id}')">Remove</button>
+          </div>
+          <div class="grocery-best-price" style="border-left-color: ${store.color || 'var(--success)'}">
+            <div class="grocery-best-store">
+              <span class="store-badge">${store.logo || ''}</span>
+              <div>
+                <div class="grocery-store-name">${store.name || best.storeId}</div>
+                <div class="grocery-product-name">${best.name}</div>
+                <div class="grocery-product-desc">${best.description || ''}</div>
+              </div>
+            </div>
+            <div class="grocery-price-info">
+              <div class="grocery-final-price">$${best.finalPrice.toFixed(2)}</div>
+              <div class="grocery-unit">${best.unit}</div>
+              ${best.originalPrice > best.finalPrice ? `<div class="original-price">$${best.originalPrice.toFixed(2)}</div>` : ''}
+              ${best.onSale ? '<span class="grocery-sale-badge">Sale</span>' : ''}
+            </div>
+          </div>
+          ${hasCoupons ? `
+            <div class="grocery-coupon-indicator">
+              <span class="coupon-available-badge">Coupon Available</span>
+              ${bestCoupons.map(c =>
+                `<span class="coupon-tag">${c.discountType === 'fixed' ? '-$' + parseFloat(c.discountValue).toFixed(2) : '-' + c.discountValue + '%'}${c.code ? ' (' + c.code + ')' : ''} at ${(storeMap[c.storeId] || {}).name || c.storeId}</span>`
+              ).join(' ')}
+            </div>` : `
+            <div class="grocery-coupon-indicator">
+              <span class="no-coupon-badge">No Coupons</span>
+            </div>`}
+          ${otherStores.length > 0 ? `
+            <div class="grocery-other-stores">
+              <span class="other-stores-label">Also at:</span>
+              ${otherStores.map(r => {
+                const s = storeMap[r.storeId] || {};
+                return `<span class="other-store-chip">${s.logo || ''} ${s.name || r.storeId} $${r.finalPrice.toFixed(2)}</span>`;
+              }).join('')}
+            </div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  // Load grocery list when switching to that tab
+  document.querySelector('[data-tab="grocery-list"]').addEventListener('click', loadGroceryList);
+
   // --- Add Item (posts to server API, falls back for display) ---
   const addItemForm = document.getElementById('add-item-form');
   addItemForm.addEventListener('submit', async (e) => {
