@@ -210,48 +210,6 @@
     .scan-other-stores { margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .scan-other-label { font-size: 0.75rem; color: var(--text-muted); }
     .scan-other-chip { background: var(--bg); border: 1px solid var(--border); padding: 0.25rem 0.7rem; border-radius: 14px; font-size: 0.75rem; color: var(--text); }
-    .best-store-section { margin-bottom: 2rem; }
-    .best-store-header h3 { font-size: 1.2rem; margin-bottom: 0.25rem; }
-    .section-title { font-size: 1.1rem; margin-bottom: 1rem; color: var(--text); }
-    .rec-store-card { background: var(--card); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow-md); border-left: 5px solid var(--success); margin-bottom: 1rem; }
-    .rec-store-top { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-    .rec-store-logo { font-size: 2.5rem; }
-    .rec-store-info { flex: 1; }
-    .rec-store-name { font-size: 1.3rem; font-weight: 700; }
-    .rec-store-subtitle { font-size: 0.85rem; color: var(--text-muted); }
-    .rec-store-total { text-align: right; }
-    .rec-total-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
-    .rec-total-amount { font-size: 2rem; font-weight: 700; color: var(--success); }
-    .rec-store-stats { display: flex; gap: 1.5rem; flex-wrap: wrap; }
-    .rec-stat { display: flex; flex-direction: column; }
-    .rec-stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
-    .rec-stat-value { font-size: 1rem; font-weight: 600; }
-    .rec-stat-value.green { color: var(--success); }
-    .rec-stat-value.bold { font-weight: 700; font-size: 1.1rem; }
-    .breakdown-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; }
-    .breakdown-table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); font-size: 0.9rem; margin-bottom: 1.25rem; }
-    .breakdown-table th { background: var(--bg); text-align: left; padding: 0.6rem 0.75rem; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .breakdown-table td { padding: 0.6rem 0.75rem; border-top: 1px solid var(--border); vertical-align: middle; }
-    .breakdown-table tr.row-estimated { background: #fffbeb; }
-    .bd-item-name { font-weight: 600; }
-    .bd-item-match { font-size: 0.75rem; color: var(--text-muted); }
-    .bd-flyer-tag { background: #dbeafe; color: #1e40af; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 3px; text-transform: uppercase; }
-    .bd-est-tag { background: #fef3c7; color: #92400e; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 3px; text-transform: uppercase; }
-    .bd-none-tag { background: var(--bg); color: var(--text-muted); font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 3px; text-transform: uppercase; }
-    .bd-unit { font-size: 0.7rem; color: var(--text-muted); }
-    .td-price { text-align: right; white-space: nowrap; }
-    .td-final { font-weight: 600; }
-    .td-saving { color: var(--success); font-weight: 600; }
-    .breakdown-total-row { background: #f0fdf4; }
-    .breakdown-total-row td { border-top: 2px solid var(--success); }
-    .other-stores-compare { margin-top: 0.5rem; }
-    .other-stores-title { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; }
-    .store-compare-chips { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-    .store-total-chip { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; box-shadow: var(--shadow); }
-    .stc-logo { font-size: 1.3rem; }
-    .stc-name { font-weight: 600; }
-    .stc-total { font-weight: 700; }
-    .stc-diff { color: var(--danger); font-size: 0.75rem; font-weight: 600; }
     @media (max-width: 640px) {
       header { padding: 1rem 1rem 0; } header h1 { font-size: 1.3rem; }
       nav { overflow-x: auto; } .nav-btn { font-size: 0.8rem; padding: 0.6rem 1rem; white-space: nowrap; }
@@ -347,17 +305,11 @@
       </div>
       <div id="shopping-results" class="shopping-results hidden">
         <div class="shopping-summary">
-          <div class="summary-card"><span class="summary-label">Items in Flyers</span><span id="shop-summary-found" class="summary-value">0</span></div>
-          <div class="summary-card"><span class="summary-label">Not in Flyers</span><span id="shop-summary-notfound" class="summary-value">0</span></div>
-          <div class="summary-card"><span class="summary-label">Total (Best per Item)</span><span id="shop-summary-total" class="summary-value">$0.00</span></div>
+          <div class="summary-card"><span class="summary-label">Items Found</span><span id="shop-summary-found" class="summary-value">0</span></div>
+          <div class="summary-card"><span class="summary-label">Items Not Found</span><span id="shop-summary-notfound" class="summary-value">0</span></div>
+          <div class="summary-card"><span class="summary-label">Best Total</span><span id="shop-summary-total" class="summary-value">$0.00</span></div>
           <div class="summary-card savings"><span class="summary-label">Total Savings</span><span id="shop-summary-savings" class="summary-value">$0.00</span></div>
         </div>
-        <div id="best-store-section" class="best-store-section hidden">
-          <div class="best-store-header"><h3>Best Single Store Recommendation</h3><p class="form-desc">If you want to do all your shopping at one store, here's where you'll save the most:</p></div>
-          <div id="best-store-card" class="best-store-card"></div>
-          <div id="best-store-breakdown" class="best-store-breakdown"></div>
-        </div>
-        <h3 class="section-title">Per-Item Best Prices (across all stores)</h3>
         <div id="shopping-scan-results" class="shopping-scan-results"></div>
       </div>
     </section>
@@ -759,7 +711,6 @@
         let totalBestPrice = 0, totalOriginalPrice = 0, foundCount = 0, notFoundCount = 0;
         const itemResults = [];
 
-        // Per-item best price across all stores
         shoppingItems.forEach(function(itemName) {
           const term = itemName.toLowerCase();
           const matches = allItems.filter(i => i.name.toLowerCase().includes(term));
@@ -783,90 +734,9 @@
         document.getElementById('shop-summary-found').textContent = foundCount;
         document.getElementById('shop-summary-notfound').textContent = notFoundCount;
         document.getElementById('shop-summary-total').textContent = '$' + totalBestPrice.toFixed(2);
-        var totalSavings = Math.max(0, totalOriginalPrice - totalBestPrice);
-        document.getElementById('shop-summary-savings').textContent = '$' + totalSavings.toFixed(2);
+        var savings = totalOriginalPrice - totalBestPrice;
+        document.getElementById('shop-summary-savings').textContent = '$' + Math.max(0, savings).toFixed(2);
 
-        // --- Best Single Store Recommendation ---
-        var storeResults = STORES.map(function(store) {
-          var total = 0, totalOrig = 0, flyerSav = 0, couponSav = 0;
-          var foundList = [], missingList = [];
-          shoppingItems.forEach(function(itemName) {
-            var term = itemName.toLowerCase();
-            var storeMatches = allItems.filter(function(i) { return i.storeId === store.id && i.name.toLowerCase().includes(term); });
-            if (storeMatches.length > 0) {
-              var best = storeMatches.sort(function(a,b){ return a.price - b.price; })[0];
-              var applicableCoupons = coupons.filter(function(c) { return c.storeId === store.id && c.productName.toLowerCase().includes(term) && (!c.validTo || new Date(c.validTo) >= new Date()); });
-              var couponDiscount = applicableCoupons.reduce(function(sum, c) {
-                if (c.discountType === 'fixed') return sum + parseFloat(c.discountValue);
-                if (c.discountType === 'percentage') return sum + (best.price * parseFloat(c.discountValue) / 100);
-                return sum;
-              }, 0);
-              var finalPrice = Math.round(Math.max(0, best.price - couponDiscount) * 100) / 100;
-              var origPrice = best.originalPrice || best.price;
-              total += finalPrice; totalOrig += origPrice;
-              flyerSav += Math.max(0, origPrice - best.price);
-              couponSav += Math.round(couponDiscount * 100) / 100;
-              foundList.push({ searchTerm: itemName, name: best.name, price: best.price, finalPrice: finalPrice, originalPrice: origPrice, unit: best.unit, onSale: best.onSale, couponDiscount: Math.round(couponDiscount * 100) / 100, appliedCoupons: applicableCoupons, description: best.description, inFlyer: true });
-            } else {
-              var anyMatch = allItems.filter(function(i) { return i.name.toLowerCase().includes(term); });
-              if (anyMatch.length > 0) {
-                var avgOrig = anyMatch.reduce(function(s,i){ return s + (i.originalPrice || i.price); }, 0) / anyMatch.length;
-                var estPrice = Math.round(avgOrig * 100) / 100;
-                total += estPrice; totalOrig += estPrice;
-                missingList.push({ searchTerm: itemName, name: anyMatch[0].name, estimatedPrice: estPrice, unit: anyMatch[0].unit, inFlyer: false, source: 'estimated from other stores' });
-              } else {
-                missingList.push({ searchTerm: itemName, name: itemName, estimatedPrice: 0, unit: '', inFlyer: false, source: 'not found' });
-              }
-            }
-          });
-          return { storeId: store.id, storeName: store.name, storeLogo: store.logo, storeColor: store.color, total: Math.round(total * 100) / 100, totalOriginal: Math.round(totalOrig * 100) / 100, flyerSavings: Math.round(flyerSav * 100) / 100, couponSavings: Math.round(couponSav * 100) / 100, totalSavings: Math.round((flyerSav + couponSav) * 100) / 100, foundItems: foundList, missingItems: missingList, foundCount: foundList.length, missingCount: missingList.length };
-        });
-        storeResults.sort(function(a, b) { return a.total - b.total; });
-
-        var bestStoreSection = document.getElementById('best-store-section');
-        if (storeResults.length > 0) {
-          var bs = storeResults[0], ru = storeResults[1];
-          bestStoreSection.classList.remove('hidden');
-          document.getElementById('best-store-card').innerHTML =
-            '<div class="rec-store-card" style="border-left-color:' + bs.storeColor + '">' +
-            '<div class="rec-store-top"><span class="rec-store-logo">' + bs.storeLogo + '</span>' +
-            '<div class="rec-store-info"><div class="rec-store-name">' + bs.storeName + '</div><div class="rec-store-subtitle">Cheapest single store for your entire list</div></div>' +
-            '<div class="rec-store-total"><div class="rec-total-label">Estimated Total</div><div class="rec-total-amount">$' + bs.total.toFixed(2) + '</div></div></div>' +
-            '<div class="rec-store-stats">' +
-            '<div class="rec-stat"><span class="rec-stat-label">Flyer Savings</span><span class="rec-stat-value green">$' + bs.flyerSavings.toFixed(2) + '</span></div>' +
-            '<div class="rec-stat"><span class="rec-stat-label">Coupon Savings</span><span class="rec-stat-value green">$' + bs.couponSavings.toFixed(2) + '</span></div>' +
-            '<div class="rec-stat"><span class="rec-stat-label">Total Savings</span><span class="rec-stat-value green bold">$' + bs.totalSavings.toFixed(2) + '</span></div>' +
-            '<div class="rec-stat"><span class="rec-stat-label">Items in Flyer</span><span class="rec-stat-value">' + bs.foundCount + ' / ' + shoppingItems.length + '</span></div>' +
-            (ru ? '<div class="rec-stat"><span class="rec-stat-label">vs. ' + ru.storeName + '</span><span class="rec-stat-value green">Save $' + Math.max(0, ru.total - bs.total).toFixed(2) + '</span></div>' : '') +
-            '</div></div>';
-
-          // Breakdown table
-          var allBd = bs.foundItems.map(function(fi) { return { name: fi.name, searchTerm: fi.searchTerm, price: fi.finalPrice, originalPrice: fi.originalPrice, unit: fi.unit, onSale: fi.onSale, couponDiscount: fi.couponDiscount, inFlyer: true, source: 'flyer' }; })
-            .concat(bs.missingItems.map(function(mi) { return { name: mi.name, searchTerm: mi.searchTerm, price: mi.estimatedPrice, originalPrice: mi.estimatedPrice, unit: mi.unit, onSale: false, couponDiscount: 0, inFlyer: false, source: mi.source }; }));
-
-          document.getElementById('best-store-breakdown').innerHTML =
-            '<div class="breakdown-title">Full Price Breakdown at ' + bs.storeLogo + ' ' + bs.storeName + '</div>' +
-            '<table class="breakdown-table"><thead><tr><th>Item</th><th>Source</th><th>Regular</th><th>You Pay</th><th>Savings</th></tr></thead><tbody>' +
-            allBd.map(function(item) {
-              var saving = Math.max(0, item.originalPrice - item.price);
-              return '<tr class="' + (!item.inFlyer ? 'row-estimated' : '') + '">' +
-                '<td><div class="bd-item-name">' + item.searchTerm + '</div>' + (item.name !== item.searchTerm ? '<div class="bd-item-match">' + item.name + '</div>' : '') + '</td>' +
-                '<td>' + (item.inFlyer ? (item.onSale ? '<span class="scan-sale-tag">FLYER SALE</span>' : '<span class="bd-flyer-tag">FLYER</span>') : (item.source === 'not found' ? '<span class="bd-none-tag">NOT FOUND</span>' : '<span class="bd-est-tag">EST. PRICE</span>')) +
-                (item.couponDiscount > 0 ? ' <span class="scan-coupon-tag">-$' + item.couponDiscount.toFixed(2) + '</span>' : '') + '</td>' +
-                '<td class="td-price">' + (item.originalPrice > 0 ? '$' + item.originalPrice.toFixed(2) : '—') + '</td>' +
-                '<td class="td-price td-final">' + (item.price > 0 ? '$' + item.price.toFixed(2) : '—') + (item.unit ? '<span class="bd-unit">/' + item.unit + '</span>' : '') + '</td>' +
-                '<td class="td-price ' + (saving > 0 ? 'td-saving' : '') + '">' + (saving > 0 ? '-$' + saving.toFixed(2) : '—') + '</td></tr>';
-            }).join('') +
-            '</tbody><tfoot><tr class="breakdown-total-row"><td colspan="3"><strong>Total at ' + bs.storeName + '</strong></td>' +
-            '<td class="td-price td-final"><strong>$' + bs.total.toFixed(2) + '</strong></td>' +
-            '<td class="td-price td-saving"><strong>-$' + bs.totalSavings.toFixed(2) + '</strong></td></tr></tfoot></table>' +
-            (storeResults.length > 1 ? '<div class="other-stores-compare"><div class="other-stores-title">Other Store Totals</div><div class="store-compare-chips">' +
-              storeResults.slice(1, 5).map(function(sr) {
-                return '<div class="store-total-chip"><span class="stc-logo">' + sr.storeLogo + '</span><span class="stc-name">' + sr.storeName + '</span><span class="stc-total">$' + sr.total.toFixed(2) + '</span><span class="stc-diff">+$' + (sr.total - bs.total).toFixed(2) + ' more</span></div>';
-              }).join('') + '</div></div>' : '');
-        }
-
-        // --- Per-item results ---
         shoppingScanResults.innerHTML = itemResults.map(function(r) {
           var itemName = r.itemName, results = r.results, best = r.best;
           if (!best) {
