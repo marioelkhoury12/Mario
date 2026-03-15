@@ -183,6 +183,129 @@ app.delete('/api/flyer-items/:id', (req, res) => {
   res.status(204).send();
 });
 
+// GET best store recommendation for a shopping list
+// POST body: { items: ["Chicken Breast", "Milk", ...] }
+// Returns per-store totals and regular prices for items not found on sale
+app.post('/api/best-store', (req, res) => {
+  const { items: shoppingItems } = req.body;
+  if (!shoppingItems || !Array.isArray(shoppingItems)) {
+    return res.status(400).json({ error: 'items array required' });
+  }
+
+  const allItems = readJSON('flyer-items.json');
+  const storesData = readJSON('stores.json');
+  const coupons = readJSON('coupons.json');
+  const storeMap = {};
+  storesData.forEach(s => { storeMap[s.id] = s; });
+
+  // For each store, calculate total cost if you bought everything there
+  const storeResults = storesData.map(store => {
+    let total = 0;
+    let totalOriginal = 0;
+    let flyerSavings = 0;
+    let couponSavings = 0;
+    const foundItems = [];
+    const missingItems = [];
+
+    shoppingItems.forEach(itemName => {
+      const term = itemName.toLowerCase();
+      // Find items matching this product at this store
+      const storeMatches = allItems.filter(i =>
+        i.storeId === store.id && i.name.toLowerCase().includes(term)
+      );
+
+      if (storeMatches.length > 0) {
+        // Pick cheapest match at this store
+        const best = storeMatches.sort((a, b) => a.price - b.price)[0];
+
+        // Apply coupons
+        const applicableCoupons = coupons.filter(c =>
+          c.storeId === store.id &&
+          c.productName.toLowerCase().includes(term) &&
+          (!c.validTo || new Date(c.validTo) >= new Date())
+        );
+        const couponDiscount = applicableCoupons.reduce((sum, c) => {
+          if (c.discountType === 'fixed') return sum + (typeof c.discountValue === 'number' ? c.discountValue : parseFloat(c.discountValue));
+          if (c.discountType === 'percentage') return sum + (best.price * (typeof c.discountValue === 'number' ? c.discountValue : parseFloat(c.discountValue)) / 100);
+          return sum;
+        }, 0);
+
+        const finalPrice = Math.round(Math.max(0, best.price - couponDiscount) * 100) / 100;
+        const origPrice = best.originalPrice || best.price;
+
+        total += finalPrice;
+        totalOriginal += origPrice;
+        flyerSavings += Math.max(0, origPrice - best.price);
+        couponSavings += Math.round(couponDiscount * 100) / 100;
+
+        foundItems.push({
+          searchTerm: itemName,
+          name: best.name,
+          price: best.price,
+          finalPrice,
+          originalPrice: origPrice,
+          unit: best.unit,
+          onSale: best.onSale,
+          couponDiscount: Math.round(couponDiscount * 100) / 100,
+          appliedCoupons: applicableCoupons,
+          description: best.description,
+          category: best.category,
+          inFlyer: true
+        });
+      } else {
+        // Not in flyer for this store — find regular price from ANY store's originalPrice
+        const anyMatch = allItems.filter(i => i.name.toLowerCase().includes(term));
+        if (anyMatch.length > 0) {
+          // Use the average originalPrice as the estimated regular price
+          const avgOriginal = anyMatch.reduce((s, i) => s + (i.originalPrice || i.price), 0) / anyMatch.length;
+          const estPrice = Math.round(avgOriginal * 100) / 100;
+          total += estPrice;
+          totalOriginal += estPrice;
+
+          missingItems.push({
+            searchTerm: itemName,
+            name: anyMatch[0].name,
+            estimatedPrice: estPrice,
+            unit: anyMatch[0].unit,
+            category: anyMatch[0].category,
+            inFlyer: false,
+            source: 'estimated from other stores'
+          });
+        } else {
+          missingItems.push({
+            searchTerm: itemName,
+            name: itemName,
+            estimatedPrice: 0,
+            unit: '',
+            category: '',
+            inFlyer: false,
+            source: 'not found'
+          });
+        }
+      }
+    });
+
+    return {
+      storeId: store.id,
+      storeName: store.name,
+      storeLogo: store.logo,
+      storeColor: store.color,
+      total: Math.round(total * 100) / 100,
+      totalOriginal: Math.round(totalOriginal * 100) / 100,
+      flyerSavings: Math.round(flyerSavings * 100) / 100,
+      couponSavings: Math.round(couponSavings * 100) / 100,
+      totalSavings: Math.round((flyerSavings + couponSavings) * 100) / 100,
+      foundItems,
+      missingItems,
+      foundCount: foundItems.length,
+      missingCount: missingItems.length
+    };
+  });
+
+  storeResults.sort((a, b) => a.total - b.total);
+  res.json(storeResults);
+});
+
 app.listen(PORT, () => {
   console.log(`Toronto Grocery Compare running at http://localhost:${PORT}`);
 });

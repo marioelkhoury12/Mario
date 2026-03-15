@@ -67,8 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCoupons();
   }
 
-  async function fetchJSON(url) {
-    const res = await fetch(url);
+  async function fetchJSON(url, options) {
+    const res = await fetch(url, options);
     return res.json();
   }
 
@@ -316,6 +316,343 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Coupon deleted', 'success');
     loadCoupons();
   };
+
+  // --- Shopping List ---
+  const shoppingTextarea = document.getElementById('shopping-textarea');
+  const scanFlyersBtn = document.getElementById('scan-flyers-btn');
+  const clearShoppingBtn = document.getElementById('clear-shopping-list');
+  const shoppingResults = document.getElementById('shopping-results');
+  const shoppingScanResults = document.getElementById('shopping-scan-results');
+  const shoppingItemCount = document.getElementById('shopping-item-count');
+
+  // Load saved list from localStorage
+  const savedList = localStorage.getItem('shopping-list-text');
+  if (savedList) shoppingTextarea.value = savedList;
+
+  // Update item count as user types
+  shoppingTextarea.addEventListener('input', () => {
+    const items = getShoppingItems();
+    shoppingItemCount.textContent = `${items.length} item${items.length !== 1 ? 's' : ''}`;
+    localStorage.setItem('shopping-list-text', shoppingTextarea.value);
+  });
+
+  // Trigger initial count
+  shoppingTextarea.dispatchEvent(new Event('input'));
+
+  clearShoppingBtn.addEventListener('click', () => {
+    shoppingTextarea.value = '';
+    shoppingResults.classList.add('hidden');
+    shoppingItemCount.textContent = '0 items';
+    localStorage.removeItem('shopping-list-text');
+    showToast('Shopping list cleared', 'success');
+  });
+
+  function getShoppingItems() {
+    return shoppingTextarea.value
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+  }
+
+  scanFlyersBtn.addEventListener('click', scanFlyers);
+
+  async function scanFlyers() {
+    const items = getShoppingItems();
+    if (items.length === 0) {
+      showToast('Add some items to your list first!', 'error');
+      return;
+    }
+
+    localStorage.setItem('shopping-list-text', shoppingTextarea.value);
+
+    shoppingResults.classList.remove('hidden');
+    shoppingScanResults.innerHTML = `
+      <div class="empty-state">
+        <div class="emoji">🔍</div>
+        <p>Scanning flyers for ${items.length} item(s)...</p>
+      </div>`;
+    document.getElementById('best-store-section').classList.add('hidden');
+
+    const coupons = getLocalCoupons();
+    const storeMap = {};
+    stores.forEach(s => { storeMap[s.id] = s; });
+
+    // --- Per-item best price (across all stores) ---
+    let totalBestPrice = 0;
+    let totalOriginalPrice = 0;
+    let foundCount = 0;
+    let notFoundCount = 0;
+    const itemResults = [];
+
+    for (const itemName of items) {
+      const results = await fetchJSON(`/api/compare?product=${encodeURIComponent(itemName)}`);
+
+      results.forEach(r => {
+        const term = itemName.toLowerCase();
+        const applicableCoupons = coupons.filter(c =>
+          c.storeId === r.storeId &&
+          c.productName.toLowerCase().includes(term) &&
+          (!c.validTo || new Date(c.validTo) >= new Date())
+        );
+        const couponDiscount = applicableCoupons.reduce((sum, c) => {
+          if (c.discountType === 'fixed') return sum + parseFloat(c.discountValue);
+          if (c.discountType === 'percentage') return sum + (r.price * parseFloat(c.discountValue) / 100);
+          return sum;
+        }, 0);
+        r.couponDiscount = Math.round(couponDiscount * 100) / 100;
+        r.finalPrice = Math.round(Math.max(0, r.price - couponDiscount) * 100) / 100;
+        r.appliedCoupons = applicableCoupons;
+      });
+
+      results.sort((a, b) => a.finalPrice - b.finalPrice);
+      const best = results[0] || null;
+      if (best) {
+        foundCount++;
+        totalBestPrice += best.finalPrice;
+        totalOriginalPrice += best.originalPrice || best.price;
+      } else {
+        notFoundCount++;
+      }
+      itemResults.push({ itemName, results, best });
+    }
+
+    const totalSavings = Math.max(0, totalOriginalPrice - totalBestPrice);
+
+    // Update summary cards
+    document.getElementById('shop-summary-found').textContent = foundCount;
+    document.getElementById('shop-summary-notfound').textContent = notFoundCount;
+    document.getElementById('shop-summary-total').textContent = `$${totalBestPrice.toFixed(2)}`;
+    document.getElementById('shop-summary-savings').textContent = `$${totalSavings.toFixed(2)}`;
+
+    // --- Best Single Store Recommendation ---
+    try {
+      const storeResults = await fetchJSON('/api/best-store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
+      });
+
+      // Apply local coupons to each store's results
+      storeResults.forEach(sr => {
+        let couponSavingsTotal = 0;
+        sr.foundItems.forEach(fi => {
+          const term = fi.searchTerm.toLowerCase();
+          const applicableCoupons = coupons.filter(c =>
+            c.storeId === sr.storeId &&
+            c.productName.toLowerCase().includes(term) &&
+            (!c.validTo || new Date(c.validTo) >= new Date())
+          );
+          const couponDiscount = applicableCoupons.reduce((sum, c) => {
+            if (c.discountType === 'fixed') return sum + parseFloat(c.discountValue);
+            if (c.discountType === 'percentage') return sum + (fi.price * parseFloat(c.discountValue) / 100);
+            return sum;
+          }, 0);
+          fi.couponDiscount = Math.round(couponDiscount * 100) / 100;
+          fi.finalPrice = Math.round(Math.max(0, fi.price - couponDiscount) * 100) / 100;
+          fi.appliedCoupons = applicableCoupons;
+          couponSavingsTotal += fi.couponDiscount;
+        });
+        sr.couponSavings = Math.round(couponSavingsTotal * 100) / 100;
+        sr.total = Math.round(sr.foundItems.reduce((s, fi) => s + fi.finalPrice, 0) * 100) / 100
+          + sr.missingItems.reduce((s, mi) => s + mi.estimatedPrice, 0);
+        sr.total = Math.round(sr.total * 100) / 100;
+        sr.totalSavings = Math.round((sr.flyerSavings + sr.couponSavings) * 100) / 100;
+      });
+
+      storeResults.sort((a, b) => a.total - b.total);
+
+      if (storeResults.length > 0) {
+        const bestStore = storeResults[0];
+        const runnerUp = storeResults[1];
+        const bestStoreSection = document.getElementById('best-store-section');
+        bestStoreSection.classList.remove('hidden');
+
+        document.getElementById('best-store-card').innerHTML = `
+          <div class="rec-store-card" style="border-left-color: ${bestStore.storeColor}">
+            <div class="rec-store-top">
+              <span class="rec-store-logo">${bestStore.storeLogo}</span>
+              <div class="rec-store-info">
+                <div class="rec-store-name">${bestStore.storeName}</div>
+                <div class="rec-store-subtitle">Cheapest single store for your entire list</div>
+              </div>
+              <div class="rec-store-total">
+                <div class="rec-total-label">Estimated Total</div>
+                <div class="rec-total-amount">$${bestStore.total.toFixed(2)}</div>
+              </div>
+            </div>
+            <div class="rec-store-stats">
+              <div class="rec-stat">
+                <span class="rec-stat-label">Flyer Savings</span>
+                <span class="rec-stat-value green">$${bestStore.flyerSavings.toFixed(2)}</span>
+              </div>
+              <div class="rec-stat">
+                <span class="rec-stat-label">Coupon Savings</span>
+                <span class="rec-stat-value green">$${bestStore.couponSavings.toFixed(2)}</span>
+              </div>
+              <div class="rec-stat">
+                <span class="rec-stat-label">Total Savings</span>
+                <span class="rec-stat-value green bold">$${bestStore.totalSavings.toFixed(2)}</span>
+              </div>
+              <div class="rec-stat">
+                <span class="rec-stat-label">Items in Flyer</span>
+                <span class="rec-stat-value">${bestStore.foundCount} / ${items.length}</span>
+              </div>
+              ${runnerUp ? `
+              <div class="rec-stat">
+                <span class="rec-stat-label">vs. ${runnerUp.storeName}</span>
+                <span class="rec-stat-value green">Save $${Math.max(0, runnerUp.total - bestStore.total).toFixed(2)}</span>
+              </div>` : ''}
+            </div>
+          </div>`;
+
+        // Build breakdown table
+        const allBreakdownItems = [
+          ...bestStore.foundItems.map(fi => ({
+            name: fi.name,
+            searchTerm: fi.searchTerm,
+            price: fi.finalPrice,
+            originalPrice: fi.originalPrice,
+            unit: fi.unit,
+            onSale: fi.onSale,
+            couponDiscount: fi.couponDiscount,
+            inFlyer: true,
+            source: 'flyer'
+          })),
+          ...bestStore.missingItems.map(mi => ({
+            name: mi.name,
+            searchTerm: mi.searchTerm,
+            price: mi.estimatedPrice,
+            originalPrice: mi.estimatedPrice,
+            unit: mi.unit,
+            onSale: false,
+            couponDiscount: 0,
+            inFlyer: false,
+            source: mi.source
+          }))
+        ];
+
+        document.getElementById('best-store-breakdown').innerHTML = `
+          <div class="breakdown-title">Full Price Breakdown at ${bestStore.storeLogo} ${bestStore.storeName}</div>
+          <table class="breakdown-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Source</th>
+                <th>Regular</th>
+                <th>You Pay</th>
+                <th>Savings</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${allBreakdownItems.map(item => {
+                const saving = Math.max(0, item.originalPrice - item.price);
+                return `
+                  <tr class="${!item.inFlyer ? 'row-estimated' : ''}">
+                    <td>
+                      <div class="bd-item-name">${item.searchTerm}</div>
+                      ${item.name !== item.searchTerm ? `<div class="bd-item-match">${item.name}</div>` : ''}
+                    </td>
+                    <td>
+                      ${item.inFlyer
+                        ? (item.onSale ? '<span class="scan-sale-tag">FLYER SALE</span>' : '<span class="bd-flyer-tag">FLYER</span>')
+                        : (item.source === 'not found' ? '<span class="bd-none-tag">NOT FOUND</span>' : '<span class="bd-est-tag">EST. PRICE</span>')}
+                      ${item.couponDiscount > 0 ? `<span class="scan-coupon-tag">-$${item.couponDiscount.toFixed(2)}</span>` : ''}
+                    </td>
+                    <td class="td-price">${item.originalPrice > 0 ? '$' + item.originalPrice.toFixed(2) : '—'}</td>
+                    <td class="td-price td-final">${item.price > 0 ? '$' + item.price.toFixed(2) : '—'}${item.unit ? '<span class="bd-unit">/' + item.unit + '</span>' : ''}</td>
+                    <td class="td-price ${saving > 0 ? 'td-saving' : ''}">${saving > 0 ? '-$' + saving.toFixed(2) : '—'}</td>
+                  </tr>`;
+              }).join('')}
+            </tbody>
+            <tfoot>
+              <tr class="breakdown-total-row">
+                <td colspan="3"><strong>Total at ${bestStore.storeName}</strong></td>
+                <td class="td-price td-final"><strong>$${bestStore.total.toFixed(2)}</strong></td>
+                <td class="td-price td-saving"><strong>-$${bestStore.totalSavings.toFixed(2)}</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+
+          ${storeResults.length > 1 ? `
+          <div class="other-stores-compare">
+            <div class="other-stores-title">Other Store Totals</div>
+            <div class="store-compare-chips">
+              ${storeResults.slice(1, 5).map(sr => `
+                <div class="store-total-chip">
+                  <span class="stc-logo">${sr.storeLogo}</span>
+                  <span class="stc-name">${sr.storeName}</span>
+                  <span class="stc-total">$${sr.total.toFixed(2)}</span>
+                  <span class="stc-diff">+$${(sr.total - bestStore.total).toFixed(2)} more</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>` : ''}
+        `;
+      }
+    } catch (err) {
+      console.error('Best store API error:', err);
+    }
+
+    // --- Render per-item results ---
+    shoppingScanResults.innerHTML = itemResults.map(({ itemName, results, best }) => {
+      if (!best) {
+        return `
+          <div class="scan-item-card not-found">
+            <div class="scan-item-name">${itemName}</div>
+            <div class="scan-not-found">No matches found in current flyers</div>
+          </div>`;
+      }
+
+      const bestStore = storeMap[best.storeId] || {};
+      const hasCoupon = best.appliedCoupons && best.appliedCoupons.length > 0;
+      const allCoupons = results.flatMap(r => (r.appliedCoupons || []).map(c => ({ ...c, storeName: (storeMap[c.storeId] || {}).name || c.storeId })));
+      const otherOptions = results.slice(1, 4);
+
+      return `
+        <div class="scan-item-card">
+          <div class="scan-item-top">
+            <div class="scan-item-name">${itemName}</div>
+            ${best.onSale ? '<span class="scan-sale-tag">ON SALE</span>' : ''}
+            ${hasCoupon ? '<span class="scan-coupon-tag">COUPON</span>' : '<span class="scan-no-coupon-tag">NO COUPON</span>'}
+          </div>
+
+          <div class="scan-best-deal" style="border-left-color: ${bestStore.color || '#16a34a'}">
+            <div class="scan-best-label">CHEAPEST</div>
+            <div class="scan-best-content">
+              <span class="scan-store-logo">${bestStore.logo || ''}</span>
+              <div class="scan-best-details">
+                <div class="scan-store-name">${bestStore.name || best.storeId}</div>
+                <div class="scan-product-match">${best.name} &mdash; ${best.description || ''}</div>
+              </div>
+              <div class="scan-price-block">
+                <div class="scan-final-price">$${best.finalPrice.toFixed(2)}</div>
+                <div class="scan-unit">${best.unit}</div>
+                ${best.originalPrice > best.finalPrice ? `<div class="scan-original-price">was $${best.originalPrice.toFixed(2)}</div>` : ''}
+                ${best.couponDiscount > 0 ? `<div class="scan-coupon-savings">-$${best.couponDiscount.toFixed(2)} coupon</div>` : ''}
+                ${best.originalPrice > best.finalPrice ? `<div class="scan-you-save">You save $${(best.originalPrice - best.finalPrice).toFixed(2)}</div>` : ''}
+              </div>
+            </div>
+          </div>
+
+          ${allCoupons.length > 0 ? `
+            <div class="scan-coupons-row">
+              <span class="scan-coupons-label">Available coupons:</span>
+              ${allCoupons.map(c =>
+                `<span class="coupon-tag">${c.discountType === 'fixed' ? '-$' + parseFloat(c.discountValue).toFixed(2) : '-' + c.discountValue + '%'}${c.code ? ' (' + c.code + ')' : ''} at ${c.storeName}</span>`
+              ).join(' ')}
+            </div>` : ''}
+
+          ${otherOptions.length > 0 ? `
+            <div class="scan-other-stores">
+              <span class="scan-other-label">Other stores:</span>
+              ${otherOptions.map(r => {
+                const s = storeMap[r.storeId] || {};
+                return `<span class="scan-other-chip">${s.logo || ''} ${s.name || r.storeId} <strong>$${r.finalPrice.toFixed(2)}</strong>/${r.unit}</span>`;
+              }).join('')}
+            </div>` : ''}
+        </div>`;
+    }).join('');
+  }
 
   // --- Add Item (posts to server API, falls back for display) ---
   const addItemForm = document.getElementById('add-item-form');
